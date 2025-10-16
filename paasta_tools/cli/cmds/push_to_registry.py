@@ -141,7 +141,6 @@ def paasta_push_to_registry_impl(
             return 1
 
     cmd = build_command(service, args.commit, image_version)
-    loglines = []
     returncode, output = _run(
         cmd,
         timeout=3600,
@@ -151,21 +150,32 @@ def paasta_push_to_registry_impl(
         loglevel="debug",
     )
     if returncode != 0:
-        loglines.append("ERROR: Failed to promote image for %s." % image_identifier)
+        _log(
+            service=service,
+            line="ERROR: Failed to promote image for %s." % image_identifier,
+            component="build",
+            level="event",
+        )
         output = get_jenkins_build_output_url()
         if output:
-            loglines.append("See output: %s" % output)
+            _log(
+                service=service,
+                line="See output: %s" % output,
+                component="build",
+                level="event",
+            )
     else:
-        loglines.append(
-            "Successfully pushed image for %s to registry" % image_identifier
-        )
         _log_audit(
             action="push-to-registry",
             action_details={"commit": args.commit},
             service=service,
         )
-    for logline in loglines:
-        _log(service=service, line=logline, component="build", level="event")
+        _log(
+            service=service,
+            line="Successfully pushed image for %s to registry" % image_identifier,
+            component="build",
+            level="event",
+        )
     return returncode
 
 
@@ -173,7 +183,7 @@ def paasta_push_to_registry(args: argparse.Namespace) -> int:
     """Upload a docker images to a registry"""
     service = args.service
     if service and service.startswith("services-"):
-        service = service.split("services-", 1)[1]
+        service = service[9:]
     validate_service_name(service, args.soa_dir)
 
     returncode = 0
