@@ -126,16 +126,17 @@ def get_casper_endpoints(
 ) -> FrozenSet[Tuple[str, int]]:
     """Filters out and returns casper endpoints from Envoy clusters."""
     casper_endpoints: Set[Tuple[str, int]] = set()
+    casper_endpoints_add = casper_endpoints.add
     for cluster_status in clusters_info["cluster_statuses"]:
         if "host_statuses" in cluster_status:
-            if cluster_status["name"].startswith("spectre.") and cluster_status[
-                "name"
-            ].endswith(".egress_cluster"):
+            cluster_name = cluster_status["name"]
+            if cluster_name.startswith("spectre.") and cluster_name.endswith(".egress_cluster"):
                 for host_status in cluster_status["host_statuses"]:
-                    casper_endpoints.add(
+                    socket_address = host_status["address"]["socket_address"]
+                    casper_endpoints_add(
                         (
-                            host_status["address"]["socket_address"]["address"],
-                            host_status["address"]["socket_address"]["port_value"],
+                            socket_address["address"],
+                            socket_address["port_value"],
                         )
                     )
     return frozenset(casper_endpoints)
