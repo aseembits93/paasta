@@ -321,16 +321,39 @@ def build_envoy_location_dict(
     running_backends_count = 0
     envoy_backends = []
     is_proxied_through_casper = False
-    for backend, task in matched_envoy_backends_and_tasks:
-        if backend is None:
-            continue
-        if backend["eds_health_status"] == "HEALTHY":
-            running_backends_count += 1
-        if should_return_individual_backends:
+    casper_backends = casper_proxied_backends
+
+    if should_return_individual_backends:
+        append_envoy_backend = envoy_backends.append
+        for backend, task in matched_envoy_backends_and_tasks:
+            if backend is None:
+                continue
+
+            if backend["eds_health_status"] == "HEALTHY":
+                running_backends_count += 1
+
             backend["has_associated_task"] = task is not None
-            envoy_backends.append(backend)
-        if (backend["address"], backend["port_value"]) in casper_proxied_backends:
-            is_proxied_through_casper = True
+            append_envoy_backend(backend)
+
+            if not is_proxied_through_casper:
+                address = backend["address"]
+                port_value = backend["port_value"]
+                if (address, port_value) in casper_backends:
+                    is_proxied_through_casper = True
+    else:
+        for backend, _ in matched_envoy_backends_and_tasks:
+            if backend is None:
+                continue
+
+            if backend["eds_health_status"] == "HEALTHY":
+                running_backends_count += 1
+
+            if not is_proxied_through_casper:
+                address = backend["address"]
+                port_value = backend["port_value"]
+                if (address, port_value) in casper_backends:
+                    is_proxied_through_casper = True
+
     return {
         "name": location,
         "running_backends_count": running_backends_count,
