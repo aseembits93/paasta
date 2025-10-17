@@ -134,10 +134,10 @@ def load_kafkacluster_instance_config(
 
 # TODO: read this from CRD in service configs
 def cr_id(service: str, instance: str) -> Mapping[str, str]:
-    return dict(
-        group="yelp.com",
-        version="v1alpha1",
-        namespace="paasta-kafkaclusters",
-        plural="kafkaclusters",
-        name=sanitised_cr_name(service, instance),
-    )
+    return {
+        "group": "yelp.com",
+        "version": "v1alpha1",
+        "namespace": "paasta-kafkaclusters",
+        "plural": "kafkaclusters",
+        "name": sanitised_cr_name(service, instance),
+    }
