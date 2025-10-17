@@ -56,12 +56,12 @@ class CassandraClusterDeploymentConfig(LongRunningServiceConfig):
     ) -> None:
 
         super().__init__(
-            cluster=cluster,
-            instance=instance,
-            service=service,
-            soa_dir=soa_dir,
-            config_dict=config_dict,
-            branch_dict=branch_dict,
+            service,
+            cluster,
+            instance,
+            config_dict,
+            branch_dict,
+            soa_dir,
         )
 
     def get_service_name_smartstack(self) -> str:
