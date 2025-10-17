@@ -193,11 +193,9 @@ def get_deploy_group_mappings(
 def build_docker_image_name(
     service: str, sha: str, image_version: Optional[str] = None
 ) -> str:
-    image_name = f"services-{service}:paasta-{sha}"
-    if image_version is not None:
-        image_name += f"-{image_version}"
-
-    return image_name
+    if image_version is None:
+        return f"services-{service}:paasta-{sha}"
+    return f"services-{service}:paasta-{sha}-{image_version}"
 
 
 def get_desired_state_by_branch_and_sha(
