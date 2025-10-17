@@ -716,8 +716,8 @@ def _parse_user_spark_args(
     user_spark_opts = {}
     if spark_args:
         for spark_arg in spark_args.split():
-            fields = spark_arg.split("=", 1)
-            if len(fields) != 2:
+            key, sep, value = spark_arg.partition("=")
+            if not sep:
                 print(
                     PaastaColors.red(
                         "Spark option %s is not in format option=value." % spark_arg
@@ -725,7 +725,7 @@ def _parse_user_spark_args(
                     file=sys.stderr,
                 )
                 sys.exit(1)
-            user_spark_opts[fields[0]] = fields[1]
+            user_spark_opts[key] = value
 
     return user_spark_opts
 
