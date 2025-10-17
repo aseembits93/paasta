@@ -61,6 +61,10 @@ from paasta_tools.utils import PoolsNotConfiguredError
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_pool
 
+_leading_invalid = re.compile("^[^a-zA-Z0-9]+")
+
+_invalid_chars = re.compile("[^a-zA-Z0-9_.-]")
+
 
 DEFAULT_AWS_REGION = "us-west-2"
 DEFAULT_SPARK_WORK_DIR = "/spark_driver"
@@ -500,7 +504,7 @@ def add_subparser(subparsers):
 
 def sanitize_container_name(container_name):
     # container_name only allows [a-zA-Z0-9][a-zA-Z0-9_.-]
-    return re.sub("[^a-zA-Z0-9_.-]", "_", re.sub("^[^a-zA-Z0-9]+", "", container_name))
+    return _invalid_chars.sub("_", _leading_invalid.sub("", container_name))
 
 
 def get_docker_run_cmd(
