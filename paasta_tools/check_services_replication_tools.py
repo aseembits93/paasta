@@ -47,6 +47,8 @@ from paasta_tools.utils import list_services
 from paasta_tools.utils import load_system_paasta_config
 from paasta_tools.utils import SPACER
 
+_SENTINEL = object()
+
 try:
     import yelp_meteorite
 except ImportError:
@@ -275,12 +277,13 @@ def set_local_vars_configuration_to_none(obj: Any, visited: Set[int] = None) -> 
     visited.add(obj_id)
 
     # if the object has the attribute, set it to None to essentially delete it
-    if hasattr(obj, "local_vars_configuration"):
+    if getattr(obj, "local_vars_configuration", _SENTINEL) is not _SENTINEL:
         setattr(obj, "local_vars_configuration", None)
 
     # recursively check attributes of the object
-    if hasattr(obj, "__dict__"):
-        for attr_name, attr_value in obj.__dict__.items():
+    obj_dict = getattr(obj, "__dict__", None)
+    if obj_dict is not None:
+        for attr_value in obj_dict.values():
             set_local_vars_configuration_to_none(attr_value, visited)
 
     # if the object is iterable/a collection, iterate over its elements
