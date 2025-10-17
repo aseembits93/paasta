@@ -37,7 +37,12 @@ def window_historical_load(historical_load, window_begin, window_end):
 def trailing_window_historical_load(historical_load, window_size):
     window_end, _ = historical_load[-1]
     window_begin = window_end - window_size
-    return window_historical_load(historical_load, window_begin, window_end)
+
+    index = len(historical_load) - 1
+    while index >= 0 and historical_load[index][0] >= window_begin:
+        index -= 1
+
+    return historical_load[index + 1 :]
 
 
 @register_autoscaling_component("moving_average", FORECAST_POLICY_KEY)
@@ -80,16 +85,24 @@ def linreg_forecast_policy(
 
     window = trailing_window_historical_load(historical_load, linreg_window_seconds)
 
-    loads = [load for timestamp, load in window]
-    times = [timestamp for timestamp, load in window]
+    n = len(window)
+    sum_time = 0
+    sum_load = 0
+    sum_time_sq = 0
+    sum_time_load = 0
+    for timestamp, load in window:
+        sum_time += timestamp
+        sum_load += load
+        sum_time_sq += timestamp * timestamp
+        sum_time_load += timestamp * load
 
-    mean_time = sum(times) / len(times)
-    mean_load = sum(loads) / len(loads)
+    mean_time = sum_time / n
+    mean_load = sum_load / n
 
     if len(window) > 1:
-        slope = sum((t - mean_time) * (l - mean_load) for t, l in window) / sum(
-            (t - mean_time) ** 2 for t in times
-        )
+        numerator = sum_time_load - (sum_time * sum_load) / n
+        denominator = sum_time_sq - (sum_time * sum_time) / n
+        slope = numerator / denominator
     else:
         slope = linreg_default_slope
 
