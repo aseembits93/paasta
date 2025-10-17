@@ -612,21 +612,18 @@ def get_docker_image(
 
 
 def get_smart_paasta_instance_name(args):
-    if os.environ.get("TRON_JOB_NAMESPACE"):
-        tron_job = os.environ.get("TRON_JOB_NAME")
-        tron_action = os.environ.get("TRON_ACTION")
+    env = os.environ
+    if env.get("TRON_JOB_NAMESPACE"):
+        tron_job = env.get("TRON_JOB_NAME")
+        tron_action = env.get("TRON_ACTION")
         return f"{tron_job}.{tron_action}"
-    else:
-        how_submitted = None
-        if args.mrjob:
-            how_submitted = "mrjob"
-        else:
-            for spark_cmd in SPARK_COMMANDS:
-                if spark_cmd in args.cmd:
-                    how_submitted = spark_cmd
-                    break
-        how_submitted = how_submitted or "other"
-        return f"{args.instance}_{get_username()}_{how_submitted}"
+    if args.mrjob:
+        return f"{args.instance}_{get_username()}_mrjob"
+    args_cmd = args.cmd
+    for spark_cmd in SPARK_COMMANDS:
+        if spark_cmd in args_cmd:
+            return f"{args.instance}_{get_username()}_{spark_cmd}"
+    return f"{args.instance}_{get_username()}_other"
 
 
 def get_spark_env(
