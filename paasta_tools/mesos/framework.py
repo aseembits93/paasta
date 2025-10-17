@@ -68,7 +68,7 @@ class Framework:
         return self._resource_allocated("disk")
 
     def _resource_allocated(self, resource):
-        return self["resources"][resource]
+        return self.__items["resources"][resource]
 
     def __eq__(self, other):
         return self.__items == other.__items
