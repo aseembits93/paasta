@@ -974,13 +974,15 @@ def get_docker_cmd(
     # Default cli options to start the jupyter notebook server.
     elif original_docker_cmd == "jupyter-lab":
         cull_opts = (
-            "--MappingKernelManager.cull_idle_timeout=%s " % args.cull_idle_timeout
+            f"--MappingKernelManager.cull_idle_timeout={args.cull_idle_timeout} "
         )
         if args.not_cull_connected is False:
             cull_opts += "--MappingKernelManager.cull_connected=True "
 
-        return "SHELL=bash USER={} /source/virtualenv_run_jupyter/bin/jupyter-lab -y --ip={} {}".format(
-            get_username(), socket.getfqdn(), cull_opts
+        return (
+            f"SHELL=bash USER={get_username()} "
+            f"/source/virtualenv_run_jupyter/bin/jupyter-lab -y --ip={socket.getfqdn()} "
+            f"{cull_opts}"
         )
     elif original_docker_cmd == "history-server":
         return "start-history-server.sh"
