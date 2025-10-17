@@ -60,6 +60,11 @@ from paasta_tools.utils import PaastaNotConfiguredError
 from paasta_tools.utils import PoolsNotConfiguredError
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_pool
+from threading import Lock
+
+_IAM_USER_CONFIG_LOCK = Lock()
+
+_IAM_USER_CONFIG_PARSER: Optional[ConfigParser] = None
 
 
 DEFAULT_AWS_REGION = "us-west-2"
@@ -638,7 +643,14 @@ def get_spark_env(
 ) -> Dict[str, str]:
     """Create the env config dict to configure on the docker container"""
 
-    spark_env = {}
+    spark_env = {
+        "AWS_DEFAULT_REGION": args.aws_region,
+        "PAASTA_LAUNCHED_BY": get_possible_launched_by_user_variable_from_env(),
+        "PAASTA_INSTANCE_TYPE": "spark",
+        "SPARK_USER": "root",
+        "SPARK_OPTS": spark_conf_str,
+    }
+
     access_key, secret_key, session_token = aws_creds
     if access_key:
         spark_env["AWS_ACCESS_KEY_ID"] = access_key
@@ -646,49 +658,32 @@ def get_spark_env(
         if session_token is not None:
             spark_env["AWS_SESSION_TOKEN"] = session_token
 
-    spark_env["AWS_DEFAULT_REGION"] = args.aws_region
-    spark_env["PAASTA_LAUNCHED_BY"] = get_possible_launched_by_user_variable_from_env()
-    spark_env["PAASTA_INSTANCE_TYPE"] = "spark"
-
-    # Run spark (and mesos framework) as root.
-    spark_env["SPARK_USER"] = "root"
-    spark_env["SPARK_OPTS"] = spark_conf_str
-
-    # Default configs to start the jupyter notebook server
-    if args.cmd == "jupyter-lab":
+    args_cmd = args.cmd
+    if args_cmd == "jupyter-lab":
         spark_env["JUPYTER_RUNTIME_DIR"] = "/source/.jupyter"
         spark_env["JUPYTER_DATA_DIR"] = "/source/.jupyter"
         spark_env["JUPYTER_CONFIG_DIR"] = "/source/.jupyter"
-    elif args.cmd == "history-server":
+    elif args_cmd == "history-server":
         dirs = args.work_dir.split(":")
         spark_env["SPARK_LOG_DIR"] = dirs[1]
-        if not args.spark_args or not args.spark_args.startswith(
-            "spark.history.fs.logDirectory"
-        ):
+        spark_args = args.spark_args
+        if not spark_args or not spark_args.startswith("spark.history.fs.logDirectory"):
             print(
                 "history-server requires spark.history.fs.logDirectory in spark-args",
                 file=sys.stderr,
             )
             sys.exit(1)
         spark_env["SPARK_HISTORY_OPTS"] = (
-            f"-D{args.spark_args} " f"-Dspark.history.ui.port={ui_port}"
+            f"-D{spark_args} -Dspark.history.ui.port={ui_port}"
         )
         spark_env["SPARK_DAEMON_CLASSPATH"] = "/opt/spark/extra_jars/*"
         spark_env["SPARK_NO_DAEMONIZE"] = "true"
 
     if args.get_eks_token_via_iam_user:
-        with open(SPARK_DRIVER_IAM_USER) as f:
-            config = ConfigParser()
-            config.read_file(f)
-
-        # these env variables are consumed by a script specified in the spark kubeconfig - and which will result in a tightly-scoped IAM identity being used for EKS cluster access
-        spark_env["GET_EKS_TOKEN_AWS_ACCESS_KEY_ID"] = config["default"][
-            "aws_access_key_id"
-        ]
-        spark_env["GET_EKS_TOKEN_AWS_SECRET_ACCESS_KEY"] = config["default"][
-            "aws_secret_access_key"
-        ]
-
+        (
+            spark_env["GET_EKS_TOKEN_AWS_ACCESS_KEY_ID"],
+            spark_env["GET_EKS_TOKEN_AWS_SECRET_ACCESS_KEY"],
+        ) = _load_iam_user_credentials()
         spark_env["KUBECONFIG"] = system_paasta_config.get_spark_iam_user_kubeconfig()
     else:
         spark_env["KUBECONFIG"] = system_paasta_config.get_spark_kubeconfig()
@@ -1413,3 +1408,23 @@ def paasta_spark_run(args: argparse.Namespace) -> int:
         ),
         extra_driver_envs=driver_envs_from_tronfig,
     )
+
+def _load_iam_user_credentials() -> Tuple[str, str]:
+    global _IAM_USER_CONFIG_PARSER
+
+    with _IAM_USER_CONFIG_LOCK:
+        parser = _IAM_USER_CONFIG_PARSER
+        if parser is None:
+            parser = ConfigParser()
+            _IAM_USER_CONFIG_PARSER = parser
+        else:
+            parser.clear()
+
+        with open(SPARK_DRIVER_IAM_USER) as f:
+            parser.read_file(f)
+
+        default_section = parser["default"]
+        return (
+            default_section["aws_access_key_id"],
+            default_section["aws_secret_access_key"],
+        )
