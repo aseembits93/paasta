@@ -61,6 +61,8 @@ from paasta_tools.utils import PoolsNotConfiguredError
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_pool
 
+_DOCKER_MEMORY_RE = re.compile(r"([0-9]+)([a-z]*)")
+
 
 DEFAULT_AWS_REGION = "us-west-2"
 DEFAULT_SPARK_WORK_DIR = "/spark_driver"
@@ -808,7 +810,7 @@ def _calculate_docker_memory_limit(
             "spark.driver.memory", DEFAULT_DRIVER_MEMORY_BY_SPARK
         )
         adjustment_factor = DOCKER_RESOURCE_ADJUSTMENT_FACTOR
-        match = re.match(r"([0-9]+)([a-z]*)", docker_memory_limit_str)
+        match = _DOCKER_MEMORY_RE.match(docker_memory_limit_str)
         memory_val = int(match[1]) * adjustment_factor
         memory_unit = match[2]
         docker_memory_limit = f"{memory_val}{memory_unit}"
