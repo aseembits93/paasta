@@ -157,11 +157,13 @@ class PaastaServiceConfigLoader:
     def _get_merged_config(
         self, config: utils.InstanceConfigDict
     ) -> utils.InstanceConfigDict:
-        if self._general_config is None:
-            self._general_config = read_service_configuration(
+        general_config = self._general_config
+        if general_config is None:
+            general_config = read_service_configuration(
                 service_name=self._service, soa_dir=self._soa_dir
             )
-        return deep_merge_dictionaries(overrides=config, defaults=self._general_config)
+            self._general_config = general_config
+        return deep_merge_dictionaries(overrides=config, defaults=general_config)
 
     def _create_service_config(
         self,

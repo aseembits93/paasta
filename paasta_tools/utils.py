@@ -85,6 +85,7 @@ from service_configuration_lib import read_service_configuration
 
 import paasta_tools.cli.fsm
 from paasta_tools import yaml_tools as yaml
+from copy import deepcopy
 
 
 # DO NOT CHANGE SPACER, UNLESS YOU'RE PREPARED TO CHANGE ALL INSTANCES
@@ -3947,18 +3948,22 @@ def deep_merge_dictionaries(
     """
     Merges two dictionaries.
     """
-    result = copy.deepcopy(defaults)
+    result = deepcopy(defaults)
+    if not overrides:
+        return result
     stack: List[Tuple[Dict, Dict]] = [(overrides, result)]
+    stack_pop = stack.pop
+    stack_append = stack.append
+    missing = object()
     while stack:
-        source_dict, result_dict = stack.pop()
+        source_dict, result_dict = stack_pop()
         for key, value in source_dict.items():
-            try:
-                child = result_dict[key]
-            except KeyError:
+            child = result_dict.get(key, missing)
+            if child is missing:
                 result_dict[key] = value
             else:
                 if isinstance(value, dict) and isinstance(child, dict):
-                    stack.append((value, child))
+                    stack_append((value, child))
                 else:
                     if allow_duplicate_keys:
                         result_dict[key] = value
