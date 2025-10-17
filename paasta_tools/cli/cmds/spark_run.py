@@ -766,19 +766,22 @@ def run_docker_container(
 
 def get_spark_app_name(original_docker_cmd: Union[Any, str, List[str]]) -> str:
     """Use submitted batch name as default spark_run job name"""
-    docker_cmds = (
-        shlex.split(original_docker_cmd)
-        if isinstance(original_docker_cmd, str)
-        else original_docker_cmd
-    )
+    if isinstance(original_docker_cmd, str):
+        original_cmd = original_docker_cmd
+        if any(c in original_cmd for c in ('"', "'", "\\", "#")):
+            docker_cmds = shlex.split(original_cmd)
+        else:
+            docker_cmds = original_cmd.split()
+    else:
+        docker_cmds = original_docker_cmd
+
     spark_app_name = None
     after_spark_submit = False
     for arg in docker_cmds:
         if arg == "spark-submit":
             after_spark_submit = True
         elif after_spark_submit and arg.endswith(".py"):
-            batch_name = arg.split("/")[-1].replace(".py", "")
-            spark_app_name = "paasta_" + batch_name
+            spark_app_name = "paasta_" + arg.rsplit("/", 1)[-1][:-3]
             break
         elif arg == "jupyter-lab":
             spark_app_name = "paasta_jupyter"

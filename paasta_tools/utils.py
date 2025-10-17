@@ -3101,7 +3101,10 @@ def get_username() -> str:
     environment variable if present.
     http://stackoverflow.com/a/2899055
     """
-    return os.environ.get("SUDO_USER", pwd.getpwuid(os.getuid())[0])
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user is not None:
+        return sudo_user
+    return pwd.getpwuid(os.getuid())[0]
 
 
 def get_hostname() -> str:
