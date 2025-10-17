@@ -58,6 +58,8 @@ from paasta_tools.utils import DEFAULT_SOA_DIR
 from paasta_tools.utils import get_git_url
 from paasta_tools.utils import get_latest_deployment_tag
 
+_PARSER: Optional[argparse.ArgumentParser] = None
+
 log = logging.getLogger(__name__)
 TARGET_FILE = "deployments.json"
 
@@ -82,26 +84,7 @@ DeploymentsDict = TypedDict(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Creates deployments.json for paasta services."
-    )
-    parser.add_argument(
-        "-d",
-        "--soa-dir",
-        dest="soa_dir",
-        metavar="SOA_DIR",
-        default=DEFAULT_SOA_DIR,
-        help="define a different soa config directory",
-    )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", dest="verbose", default=False
-    )
-    parser.add_argument(
-        "-s",
-        "--service",
-        required=True,
-        help="Service name to make the deployments.json for",
-    )
+    parser = _get_parser()
     args = parser.parse_args()
     return args
 
@@ -253,6 +236,33 @@ def main() -> None:
         logging.basicConfig(level=logging.WARNING)
 
     generate_deployments_for_service(service=service, soa_dir=soa_dir)
+
+
+def _get_parser() -> argparse.ArgumentParser:
+    global _PARSER
+    if _PARSER is None:
+        parser = argparse.ArgumentParser(
+            description="Creates deployments.json for paasta services."
+        )
+        parser.add_argument(
+            "-d",
+            "--soa-dir",
+            dest="soa_dir",
+            metavar="SOA_DIR",
+            default=DEFAULT_SOA_DIR,
+            help="define a different soa config directory",
+        )
+        parser.add_argument(
+            "-v", "--verbose", action="store_true", dest="verbose", default=False
+        )
+        parser.add_argument(
+            "-s",
+            "--service",
+            required=True,
+            help="Service name to make the deployments.json for",
+        )
+        _PARSER = parser
+    return _PARSER
 
 
 if __name__ == "__main__":
