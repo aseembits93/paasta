@@ -767,20 +767,18 @@ def get_mesos_slaves_grouped_by_attribute(slaves, attribute):
     :returns: a dictionary of the form {'<attribute_value>': [<list of hosts with attribute=attribute_value>]}
               (response can contain multiple 'attribute_value)
     """
-    sorted_slaves = sorted(
-        slaves,
-        key=lambda slave: (
-            slave["attributes"].get(attribute) is None,
-            slave["attributes"].get(attribute),
-        ),
-    )
-    return {
-        key: list(group)
-        for key, group in itertools.groupby(
-            sorted_slaves, key=lambda slave: slave["attributes"].get(attribute)
-        )
-        if key
-    }
+    grouped_slaves = {}
+    for slave in slaves:
+        attributes = slave["attributes"]
+        value = attributes.get(attribute)
+        if value:
+            grouped_slaves.setdefault(value, []).append(slave)
+
+    if not grouped_slaves:
+        return {}
+
+    ordered_keys = sorted(grouped_slaves, key=lambda key: (key is None, key))
+    return {key: grouped_slaves[key] for key in ordered_keys}
 
 
 # TODO: remove to_blocking, convert call sites (smartstack_tools and marathon_serviceinit) to asyncio.
