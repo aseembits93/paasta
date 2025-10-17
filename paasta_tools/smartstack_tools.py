@@ -651,13 +651,17 @@ def build_smartstack_backend_dict(
     task: Union[V1Pod],
 ) -> MutableMapping[str, Any]:
     svname = smartstack_backend["svname"]
-    if isinstance(task, V1Pod):
-        node_hostname = svname.split("_")[0]
-        pod_ip = svname.split("_")[1].split(":")[0]
-        hostname = f"{node_hostname}:{pod_ip}"
+    parts = svname.split("_")
+    last_part = parts[-1]
+    is_pod = isinstance(task, V1Pod)
+
+    if is_pod:
+        pod_ip = parts[1].split(":", 1)[0]
+        hostname = f"{parts[0]}:{pod_ip}"
     else:
-        hostname = svname.split("_")[0]
-    port = svname.split("_")[-1].split(":")[-1]
+        hostname = parts[0]
+
+    port = last_part.rsplit(":", 1)[-1]
 
     smartstack_backend_dict = {
         "hostname": hostname,
