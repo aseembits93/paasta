@@ -238,14 +238,16 @@ def get_smartstack_replication_for_attribute(
     )
 
     full_name = compose_job_id(service, namespace)
+    synapse_port = system_paasta_config.get_synapse_port()
+    synapse_haproxy_url_format = system_paasta_config.get_synapse_haproxy_url_format()
 
     for value, hosts in attribute_slave_dict.items():
         # arbitrarily choose the first host with a given attribute to query for replication stats
         synapse_host = hosts[0]["hostname"]
         repl_info = get_replication_for_services(
             synapse_host=synapse_host,
-            synapse_port=system_paasta_config.get_synapse_port(),
-            synapse_haproxy_url_format=system_paasta_config.get_synapse_haproxy_url_format(),
+            synapse_port=synapse_port,
+            synapse_haproxy_url_format=synapse_haproxy_url_format,
             services=[full_name],
         )
         replication_info[value] = repl_info
@@ -302,7 +304,9 @@ def get_replication_for_services(
         synapse_haproxy_url_format=synapse_haproxy_url_format,
     )
 
-    counter = collections.Counter([b["pxname"] for b in backends if backend_is_up(b)])
+    counter = collections.Counter(
+        backend["pxname"] for backend in backends if backend_is_up(backend)
+    )
     return {sn: counter[sn] for sn in services}
 
 
