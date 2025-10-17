@@ -23,7 +23,8 @@ class Framework:
         return self.__items[name]
 
     def __str__(self):
-        return f"{self.name}:{self.id}"
+        items = self.__items
+        return f"{items['name']}:{items['id']}"
 
     def get(self, name, default=None):
         try:
