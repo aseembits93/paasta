@@ -959,9 +959,12 @@ def configure_and_run_docker_container(
 
 
 def _should_get_resource_requirements(docker_cmd: str, is_mrjob: bool) -> bool:
-    return is_mrjob or any(
-        c in docker_cmd for c in ["pyspark", "spark-shell", "spark-submit"]
-    )
+    if is_mrjob:
+        return True
+    for c in ("pyspark", "spark-shell", "spark-submit"):
+        if c in docker_cmd:
+            return True
+    return False
 
 
 def get_docker_cmd(
