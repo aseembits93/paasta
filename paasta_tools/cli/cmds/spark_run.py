@@ -61,6 +61,10 @@ from paasta_tools.utils import PoolsNotConfiguredError
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_pool
 
+_LEADING_INVALID_RE = re.compile("^[^a-zA-Z0-9]+")
+
+_INVALID_CHARS_RE = re.compile("[^a-zA-Z0-9_.-]")
+
 
 DEFAULT_AWS_REGION = "us-west-2"
 DEFAULT_SPARK_WORK_DIR = "/spark_driver"
@@ -500,7 +504,8 @@ def add_subparser(subparsers):
 
 def sanitize_container_name(container_name):
     # container_name only allows [a-zA-Z0-9][a-zA-Z0-9_.-]
-    return re.sub("[^a-zA-Z0-9_.-]", "_", re.sub("^[^a-zA-Z0-9]+", "", container_name))
+    sanitized = _LEADING_INVALID_RE.sub("", container_name)
+    return _INVALID_CHARS_RE.sub("_", sanitized)
 
 
 def get_docker_run_cmd(
@@ -518,46 +523,40 @@ def get_docker_run_cmd(
         f"Setting docker memory, shared memory, and cpu limits as {docker_memory_limit}, {docker_shm_size}, and {docker_cpu_limit} core(s) respectively."
     )
     cmd = ["paasta_docker_wrapper", "run"]
-    cmd.append(f"--memory={docker_memory_limit}")
+    cmd_append = cmd.append
+    cmd_extend = cmd.extend
+    cmd_append(f"--memory={docker_memory_limit}")
     if docker_shm_size is not None:
-        cmd.append(f"--shm-size={docker_shm_size}")
-        cmd.append("--ulimit")
-        cmd.append("memlock=-1")
-    cmd.append(f"--cpus={docker_cpu_limit}")
-    cmd.append("--rm")
-    cmd.append("--net=host")
+        cmd_append(f"--shm-size={docker_shm_size}")
+        cmd_extend(("--ulimit", "memlock=-1"))
+    cmd_append(f"--cpus={docker_cpu_limit}")
+    cmd_extend(("--rm", "--net=host"))
 
     non_interactive_cmd = ["spark-submit", "history-server"]
     if not any(c in docker_cmd for c in non_interactive_cmd):
-        cmd.append("--interactive=true")
+        cmd_append("--interactive=true")
         if sys.stdout.isatty():
-            cmd.append("--tty=true")
+            cmd_append("--tty=true")
 
-    container_user = (
-        # root inside container == current user outside
-        (0, 0)
-        if is_using_unprivileged_containers()
-        else (os.geteuid(), os.getegid())
-    )
-    cmd.append("--user=%d:%d" % container_user)
-    cmd.append("--name=%s" % sanitize_container_name(container_name))
+    is_unprivileged = is_using_unprivileged_containers()
+    container_user = (0, 0) if is_unprivileged else (os.geteuid(), os.getegid())
+    cmd_append("--user=%d:%d" % container_user)
+    cmd_append(f"--name={sanitize_container_name(container_name)}")
+    sensitive_env = SENSITIVE_ENV
     for k, v in env.items():
-        cmd.append("--env")
-        if k in SENSITIVE_ENV:
-            cmd.append(k)
+        cmd_append("--env")
+        if k in sensitive_env:
+            cmd_append(k)
         else:
-            cmd.append(f"{k}={v}")
-    if is_using_unprivileged_containers():
-        cmd.append("--env")
-        cmd.append(f"HOME=/nail/home/{get_username()}")
+            cmd_append(f"{k}={v}")
+    if is_unprivileged:
+        cmd_extend(("--env", f"HOME=/nail/home/{get_username()}"))
     if nvidia:
-        cmd.append("--env")
-        cmd.append("NVIDIA_VISIBLE_DEVICES=all")
-        cmd.append("--runtime=nvidia")
+        cmd_extend(("--env", "NVIDIA_VISIBLE_DEVICES=all", "--runtime=nvidia"))
     for volume in volumes:
-        cmd.append("--volume=%s" % volume)
-    cmd.append("%s" % docker_img)
-    cmd.extend(("sh", "-c", docker_cmd))
+        cmd_append(f"--volume={volume}")
+    cmd_append(str(docker_img))
+    cmd_extend(("sh", "-c", docker_cmd))
 
     return cmd
 
