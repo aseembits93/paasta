@@ -60,6 +60,7 @@ from paasta_tools.utils import PaastaNotConfiguredError
 from paasta_tools.utils import PoolsNotConfiguredError
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_pool
+from functools import lru_cache
 
 
 DEFAULT_AWS_REGION = "us-west-2"
@@ -994,8 +995,7 @@ def _get_adhoc_docker_registry(service: str, soa_dir: str = DEFAULT_SOA_DIR) -> 
     if service is None:
         raise NotImplementedError('"None" is not a valid service')
 
-    service_configuration = read_service_configuration(service, soa_dir)
-    return service_configuration.get("docker_registry", DEFAULT_SPARK_DOCKER_REGISTRY)
+    return _cached_docker_registry(service, soa_dir)
 
 
 def build_and_push_docker_image(args: argparse.Namespace) -> Optional[str]:
@@ -1413,3 +1413,9 @@ def paasta_spark_run(args: argparse.Namespace) -> int:
         ),
         extra_driver_envs=driver_envs_from_tronfig,
     )
+
+
+@lru_cache(maxsize=None)
+def _cached_docker_registry(service: str, soa_dir: str) -> str:
+    service_configuration = read_service_configuration(service, soa_dir)
+    return service_configuration.get("docker_registry", DEFAULT_SPARK_DOCKER_REGISTRY)
