@@ -14,24 +14,23 @@ from paasta_tools.kubernetes_tools import get_namespaced_configmap
 from paasta_tools.kubernetes_tools import KubeClient
 from paasta_tools.kubernetes_tools import replace_namespaced_configmap
 
+_parser = argparse.ArgumentParser(
+    description=f"Clean up expired entries from the {AUTOSCALING_OVERRIDES_CONFIGMAP_NAME} configmap"
+)
+
+_parser.add_argument(
+    "--dry-run",
+    dest="dry_run",
+    action="store_true",
+    help="Print entries to be removed instead of removing them",
+)
+_parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", default=False)
+
 log = logging.getLogger(__name__)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description=f"Clean up expired entries from the {AUTOSCALING_OVERRIDES_CONFIGMAP_NAME} configmap"
-    )
-    parser.add_argument(
-        "--dry-run",
-        dest="dry_run",
-        action="store_true",
-        help="Print entries to be removed instead of removing them",
-    )
-    parser.add_argument(
-        "-v", "--verbose", dest="verbose", action="store_true", default=False
-    )
-    args = parser.parse_args()
-    return args
+    return _parser.parse_args()
 
 
 def setup_logging(verbose):
