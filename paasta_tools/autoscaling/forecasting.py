@@ -37,6 +37,28 @@ def window_historical_load(historical_load, window_begin, window_end):
 def trailing_window_historical_load(historical_load, window_size):
     window_end, _ = historical_load[-1]
     window_begin = window_end - window_size
+
+    filtered = []
+    append = filtered.append
+    last_timestamp = window_end
+    is_monotonic_nondecreasing = True
+
+    for timestamp, value in reversed(historical_load):
+        if timestamp > last_timestamp:
+            is_monotonic_nondecreasing = False
+            break
+        if timestamp > window_end:
+            last_timestamp = timestamp
+            continue
+        if timestamp < window_begin:
+            break
+        append((timestamp, value))
+        last_timestamp = timestamp
+
+    if is_monotonic_nondecreasing:
+        filtered.reverse()
+        return filtered
+
     return window_historical_load(historical_load, window_begin, window_end)
 
 
@@ -52,8 +74,8 @@ def moving_average_forecast_policy(
     windowed_data = trailing_window_historical_load(
         historical_load, moving_average_window_seconds
     )
-    windowed_values = [value for timestamp, value in windowed_data]
-    return sum(windowed_values) / len(windowed_values)
+    windowed_values_sum = sum(value for timestamp, value in windowed_data)
+    return windowed_values_sum / len(windowed_data)
 
 
 @register_autoscaling_component("linreg", FORECAST_POLICY_KEY)
