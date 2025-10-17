@@ -3101,7 +3101,10 @@ def get_username() -> str:
     environment variable if present.
     http://stackoverflow.com/a/2899055
     """
-    return os.environ.get("SUDO_USER", pwd.getpwuid(os.getuid())[0])
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user is not None:
+        return sudo_user
+    return _get_username_for_uid(os.getuid())
 
 
 def get_hostname() -> str:
@@ -4343,3 +4346,8 @@ def write_yaml_configuration_file(
             default_flow_style=False,
             allow_unicode=False,
         )
+
+
+@lru_cache(maxsize=None)
+def _get_username_for_uid(uid: int) -> str:
+    return pwd.getpwuid(uid)[0]
