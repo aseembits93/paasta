@@ -630,14 +630,21 @@ def build_smartstack_location_dict(
     should_return_individual_backends: bool = False,
 ) -> MutableMapping[str, Any]:
     running_backends_count = 0
-    backends = []
+    backends: List[MutableMapping[str, Any]] = []
+    append_backend = backends.append if should_return_individual_backends else None
+
     for backend, task in matched_backends_and_tasks:
         if backend is None:
             continue
-        if backend_is_up(backend):
+        status = backend["status"]
+        if isinstance(status, str):
+            is_backend_up = status.startswith("UP")
+        else:
+            is_backend_up = str(status).startswith("UP")
+        if is_backend_up:
             running_backends_count += 1
-        if should_return_individual_backends:
-            backends.append(build_smartstack_backend_dict(backend, task))
+        if append_backend is not None:
+            append_backend(build_smartstack_backend_dict(backend, task))
 
     return {
         "name": location,
@@ -651,17 +658,21 @@ def build_smartstack_backend_dict(
     task: Union[V1Pod],
 ) -> MutableMapping[str, Any]:
     svname = smartstack_backend["svname"]
+    svname_parts = svname.split("_")
+
     if isinstance(task, V1Pod):
-        node_hostname = svname.split("_")[0]
-        pod_ip = svname.split("_")[1].split(":")[0]
+        node_hostname = svname_parts[0]
+        pod_ip = svname_parts[1].partition(":")[0]
         hostname = f"{node_hostname}:{pod_ip}"
     else:
-        hostname = svname.split("_")[0]
-    port = svname.split("_")[-1].split(":")[-1]
+        hostname = svname_parts[0]
 
-    smartstack_backend_dict = {
+    _, _, port_str = svname_parts[-1].rpartition(":")
+    port = int(port_str)
+
+    smartstack_backend_dict: MutableMapping[str, Any] = {
         "hostname": hostname,
-        "port": int(port),
+        "port": port,
         "status": smartstack_backend["status"],
         "check_status": smartstack_backend["check_status"],
         "check_code": smartstack_backend["check_code"],
