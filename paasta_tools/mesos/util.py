@@ -17,6 +17,12 @@ import functools
 import itertools
 import time
 
+_GB_FACTOR = 1 << 30
+
+_MB_FACTOR = 1 << 20
+
+_KB_FACTOR = 1 << 10
+
 
 def merge(obj, *keys):
     return itertools.chain(*[obj[k] for k in keys])
@@ -62,8 +68,12 @@ def memoize(obj):
 
 
 def humanize_bytes(b):
-    abbrevs = ((1 << 30, "GB"), (1 << 20, "MB"), (1 << 10, "kB"), (1, "B"))
-    for factor, suffix in abbrevs:
-        if b >= factor:
-            break
-    return "%.*f %s" % (2, b / float(factor), suffix)
+    if b >= _GB_FACTOR:
+        factor, suffix = _GB_FACTOR, "GB"
+    elif b >= _MB_FACTOR:
+        factor, suffix = _MB_FACTOR, "MB"
+    elif b >= _KB_FACTOR:
+        factor, suffix = _KB_FACTOR, "kB"
+    else:
+        factor, suffix = 1, "B"
+    return "%.*f %s" % (2, b / factor, suffix)
