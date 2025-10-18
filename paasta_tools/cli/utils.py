@@ -847,8 +847,9 @@ def validate_given_deploy_groups(
         lists and those only in args_deploy_groups
     """
     invalid_deploy_groups: Set[str]
-    valid_deploy_groups = set(args_deploy_groups).intersection(all_deploy_groups)
-    invalid_deploy_groups = set(args_deploy_groups).difference(all_deploy_groups)
+    set_args_deploy_groups = set(args_deploy_groups)
+    valid_deploy_groups = set_args_deploy_groups.intersection(all_deploy_groups)
+    invalid_deploy_groups = set_args_deploy_groups.difference(all_deploy_groups)
 
     return valid_deploy_groups, invalid_deploy_groups
 
