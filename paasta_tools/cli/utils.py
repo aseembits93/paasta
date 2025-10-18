@@ -984,8 +984,7 @@ def get_instance_configs_for_service(
 
 
 def get_container_name(task):
-    container_name = "mesos-{}".format(task.executor["container"])
-    return container_name
+    return f"mesos-{task.executor['container']}"
 
 
 def pick_random_port(service_name):
