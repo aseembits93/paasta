@@ -81,6 +81,10 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_red = PaastaColors.red
+
+_blue = PaastaColors.blue
+
 
 log = logging.getLogger(__name__)
 
@@ -120,7 +124,7 @@ def x_mark():
     """
     :return: string that can print an x-mark
     """
-    return PaastaColors.red("\u2717")
+    return _red("\u2717")
 
 
 def info_mark() -> str:
@@ -145,7 +149,7 @@ def failure(msg, link):
     :param msg: a string
     :return: a beautiful string
     """
-    return "{} {} {}".format(x_mark(), msg, PaastaColors.blue(link))
+    return f"{x_mark()} {msg} {_blue(link)}"
 
 
 def info_message(msg: str) -> str:
