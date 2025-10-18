@@ -40,6 +40,7 @@ from paasta_tools.utils import deep_merge_dictionaries
 from paasta_tools.utils import DEFAULT_SOA_DIR
 from paasta_tools.utils import load_service_instance_config
 from paasta_tools.utils import load_v2_deployments_json
+from functools import lru_cache
 
 FLINK_INGRESS_PORT = 31080
 FLINK_DASHBOARD_TIMEOUT_SECONDS = 5
@@ -195,11 +196,13 @@ def cr_id(service: str, instance: str) -> Mapping[str, str]:
     )
 
 
+@lru_cache(maxsize=None)
 def get_flink_ingress_url_root(cluster: str, is_eks: bool) -> str:
     if is_eks:
-        return f"http://flink.eks.{cluster}.paasta:{FLINK_INGRESS_PORT}/"
+        environment = "eks"
     else:
-        return f"http://flink.k8s.{cluster}.paasta:{FLINK_INGRESS_PORT}/"
+        environment = "k8s"
+    return f"http://flink.{environment}.{cluster}.paasta:{FLINK_INGRESS_PORT}/"
 
 
 def _dashboard_get(cr_name: str, cluster: str, path: str, is_eks: bool) -> str:
