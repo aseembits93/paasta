@@ -81,6 +81,10 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_REGEX = re.compile(
+    r"^refs/tags/(?:paasta-){1,2}(?P<deploy_group>[a-zA-Z0-9._-]+)(?:\+(?P<image_version>.*)){0,1}-(?P<tstamp>\d{8}T\d{6})-(?P<tag>.*?)$"
+)
+
 
 log = logging.getLogger(__name__)
 
@@ -812,8 +816,7 @@ def select_k8s_secret_namespace(namespaces: Set[str]) -> Optional[str]:
 
 def extract_tags(paasta_tag: str) -> Mapping[str, str]:
     """Returns a dictionary containing information from a git tag"""
-    regex = r"^refs/tags/(?:paasta-){1,2}(?P<deploy_group>[a-zA-Z0-9._-]+)(?:\+(?P<image_version>.*)){0,1}-(?P<tstamp>\d{8}T\d{6})-(?P<tag>.*?)$"
-    regex_match = re.match(regex, paasta_tag)
+    regex_match = _REGEX.match(paasta_tag)
     return regex_match.groupdict() if regex_match else {}
 
 
