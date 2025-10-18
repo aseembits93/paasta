@@ -81,6 +81,10 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_basename = os.path.basename
+
+_getcwd = os.getcwd
+
 
 log = logging.getLogger(__name__)
 
@@ -342,7 +346,7 @@ def guess_service_name():
     """Deduce the service name from the pwd
     :return : A string representing the service name
     """
-    return os.path.basename(os.getcwd())
+    return _basename(_getcwd())
 
 
 def validate_service_name(service, soa_dir=DEFAULT_SOA_DIR):
