@@ -81,6 +81,8 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_INFO_MARK = PaastaColors.blue("\u2139")
+
 
 log = logging.getLogger(__name__)
 
@@ -149,7 +151,7 @@ def failure(msg, link):
 
 
 def info_message(msg: str) -> str:
-    return f"{info_mark()} {msg}"
+    return f"{_INFO_MARK} {msg}"
 
 
 class PaastaCheckMessages:
