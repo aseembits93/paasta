@@ -120,7 +120,9 @@ def x_mark():
     """
     :return: string that can print an x-mark
     """
-    return PaastaColors.red("\u2717")
+    color_text = PaastaColors.color_text
+    red_color = PaastaColors.RED
+    return color_text(red_color, "\u2717")
 
 
 def info_mark() -> str:
