@@ -58,6 +58,10 @@ from paasta_tools.utils import DEFAULT_SOA_DIR
 from paasta_tools.utils import get_git_url
 from paasta_tools.utils import get_latest_deployment_tag
 
+_TAG_PATTERN = re.compile(
+    r"^refs/tags/(?:paasta-){0,2}(?P<branch>[a-zA-Z0-9-_.]+)-(?P<force_bounce>[^-]+)-(?P<state>(start|stop))$"
+)
+
 log = logging.getLogger(__name__)
 TARGET_FILE = "deployments.json"
 
@@ -203,21 +207,23 @@ def build_docker_image_name(
 def get_desired_state_by_branch_and_sha(
     remote_refs: Dict[str, str]
 ) -> Dict[Tuple[str, str], Tuple[str, Any]]:
-    tag_pattern = r"^refs/tags/(?:paasta-){0,2}(?P<branch>[a-zA-Z0-9-_.]+)-(?P<force_bounce>[^-]+)-(?P<state>(start|stop))$"
+    tag_pattern = _TAG_PATTERN
 
     states_by_branch_and_sha: Dict[Tuple[str, str], List[Tuple[str, Any]]] = {}
 
     for ref_name, sha in remote_refs.items():
-        match = re.match(tag_pattern, ref_name)
+        match = tag_pattern.match(ref_name)
         if match:
-            gd = match.groupdict()
-            states_by_branch_and_sha.setdefault((gd["branch"], sha), []).append(
-                (gd["state"], gd["force_bounce"])
+            branch = match.group("branch")
+            force_bounce = match.group("force_bounce")
+            state = match.group("state")
+            states_by_branch_and_sha.setdefault((branch, sha), []).append(
+                (state, force_bounce)
             )
 
     return {
-        (branch, sha): sorted(states, key=lambda x: x[1])[-1]
-        for ((branch, sha), states) in states_by_branch_and_sha.items()
+        (branch, sha): _select_latest_state(states)
+        for (branch, sha), states in states_by_branch_and_sha.items()
     }
 
 
@@ -253,6 +259,14 @@ def main() -> None:
         logging.basicConfig(level=logging.WARNING)
 
     generate_deployments_for_service(service=service, soa_dir=soa_dir)
+
+
+def _select_latest_state(states: List[Tuple[str, Any]]) -> Tuple[str, Any]:
+    best_state, best_force_bounce = states[0]
+    for state, force_bounce in states[1:]:
+        if force_bounce > best_force_bounce or force_bounce == best_force_bounce:
+            best_state, best_force_bounce = state, force_bounce
+    return best_state, best_force_bounce
 
 
 if __name__ == "__main__":
