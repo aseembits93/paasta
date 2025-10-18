@@ -82,6 +82,23 @@ class AWSSessionCreds(TypedDict):
 
 
 def parse_date(date_string):
+    if (
+        isinstance(date_string, str)
+        and len(date_string) == 10
+        and date_string[4] == "-"
+        and date_string[7] == "-"
+    ):
+        year_part = date_string[:4]
+        month_part = date_string[5:7]
+        day_part = date_string[8:]
+        if year_part.isdigit() and month_part.isdigit() and day_part.isdigit():
+            year = int(year_part)
+            month = int(month_part)
+            day = int(day_part)
+            try:
+                return datetime.datetime(year, month, day)
+            except ValueError:
+                pass
     return datetime.datetime.strptime(date_string, "%Y-%m-%d")
 
 
