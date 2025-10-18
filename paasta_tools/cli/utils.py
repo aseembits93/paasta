@@ -81,6 +81,10 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_reserve = ephemeral_port_reserve.reserve
+
+_preferred_port_cache: dict[tuple[str, str], int] = {}
+
 
 log = logging.getLogger(__name__)
 
@@ -994,10 +998,16 @@ def pick_random_port(service_name):
     Tries to return the same port for the same service each time, when
     possible.
     """
-    hash_key = f"{service_name},{getpass.getuser()}".encode("utf8")
-    hash_number = int(hashlib.sha1(hash_key).hexdigest(), 16)
-    preferred_port = 33000 + (hash_number % 25000)
-    return ephemeral_port_reserve.reserve("0.0.0.0", preferred_port)
+    user = getpass.getuser()
+    key = (service_name, user)
+    try:
+        preferred_port = _preferred_port_cache[key]
+    except KeyError:
+        hash_key = f"{service_name},{user}".encode("utf8")
+        hash_number = int.from_bytes(hashlib.sha1(hash_key).digest(), "big")
+        preferred_port = 33000 + (hash_number % 25000)
+        _preferred_port_cache[key] = preferred_port
+    return _reserve("0.0.0.0", preferred_port)
 
 
 def trigger_deploys(
