@@ -16,7 +16,6 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 from urllib.parse import urljoin
-from urllib.parse import urlparse
 
 import requests
 import service_configuration_lib
@@ -40,6 +39,10 @@ from paasta_tools.utils import deep_merge_dictionaries
 from paasta_tools.utils import DEFAULT_SOA_DIR
 from paasta_tools.utils import load_service_instance_config
 from paasta_tools.utils import load_v2_deployments_json
+
+_CLUSTER_LABEL = paasta_prefixed("cluster")
+
+_EKS_LABEL = "paasta.yelp.com/eks"
 
 FLINK_INGRESS_PORT = 31080
 FLINK_DASHBOARD_TIMEOUT_SECONDS = 5
@@ -214,37 +217,35 @@ def _filter_for_endpoint(json_response: Any, endpoint: str) -> Mapping[str, Any]
     """
     Filter json response to include only a subset of fields.
     """
+    keys = None
     if endpoint == "config":
-        return {
-            key: value for (key, value) in json_response.items() if key in CONFIG_KEYS
-        }
-    if endpoint == "overview":
-        return {
-            key: value for (key, value) in json_response.items() if key in OVERVIEW_KEYS
-        }
-    if endpoint == "jobs":
+        keys = CONFIG_KEYS
+    elif endpoint == "overview":
+        keys = OVERVIEW_KEYS
+    elif endpoint == "jobs":
         return json_response
-    if endpoint.startswith("jobs"):
-        return {
-            key: value
-            for (key, value) in json_response.items()
-            if key in JOB_DETAILS_KEYS
-        }
+    elif endpoint.startswith("jobs"):
+        keys = JOB_DETAILS_KEYS
+
+    if keys is not None:
+        return {key: value for (key, value) in json_response.items() if key in keys}
     return json_response
 
 
 def _get_jm_rest_api_base_url(cr: Mapping[str, Any]) -> str:
     metadata = cr["metadata"]
-    cluster = metadata["labels"][paasta_prefixed("cluster")]
-    is_eks = metadata["labels"].get("paasta.yelp.com/eks", "False")
-    base_url = get_flink_ingress_url_root(cluster, is_eks == "True")
+    labels = metadata["labels"]
+    cluster = labels[_CLUSTER_LABEL]
+    is_eks = labels.get(_EKS_LABEL) == "True"
+    base_url = get_flink_ingress_url_root(cluster, is_eks)
 
-    # this will look something like http://flink-jobmanager-host:port/paasta-service-cr-name
-    _, _, service_cr_name, *_ = urlparse(
+    service_cr_name = _extract_service_cr_name(
         metadata["annotations"]["flink.yelp.com/dashboard_url"]
     )
-
-    return urljoin(base_url, service_cr_name)
+    if service_cr_name:
+        return base_url.rstrip("/") + service_cr_name
+    else:
+        return base_url
 
 
 def curl_flink_endpoint(cr_id: Mapping[str, str], endpoint: str) -> Mapping[str, Any]:
@@ -361,3 +362,20 @@ def get_flink_overview_from_paasta_api_client(
         service=service,
         instance=instance,
     )
+
+
+def _extract_service_cr_name(dashboard_url: str) -> str:
+    scheme_sep = dashboard_url.find("://")
+    if scheme_sep == -1:
+        path = dashboard_url
+    else:
+        host_start = scheme_sep + 3
+        path_start = dashboard_url.find("/", host_start)
+        if path_start == -1:
+            return ""
+        path = dashboard_url[path_start:]
+    for separator in ("?", "#"):
+        sep_index = path.find(separator)
+        if sep_index != -1:
+            path = path[:sep_index]
+    return path
