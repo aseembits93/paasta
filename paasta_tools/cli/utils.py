@@ -81,6 +81,8 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_PATTERN = re.compile("[a-f0-9]{4,40}")
+
 
 log = logging.getLogger(__name__)
 
@@ -864,8 +866,7 @@ def short_to_full_git_sha(short, refs):
 
 
 def validate_short_git_sha(value):
-    pattern = re.compile("[a-f0-9]{4,40}")
-    if not pattern.match(value):
+    if not _PATTERN.match(value):
         raise argparse.ArgumentTypeError("%s is not a valid Git SHA" % value)
     return value
 
