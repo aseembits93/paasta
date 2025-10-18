@@ -426,15 +426,17 @@ class InstanceConfig:
         self.soa_dir = soa_dir
         self._job_id = compose_job_id(service, instance)
         config_interpolation_keys = ("deploy_group",)
-        interpolation_facts = self.__get_interpolation_facts()
+        interpolation_facts: Optional[Dict[str, str]] = None
+        config_dict_local = self.config_dict
         for key in config_interpolation_keys:
-            if (
-                key in self.config_dict
-                and self.config_dict[key] is not None  # type: ignore
-            ):
-                self.config_dict[key] = self.config_dict[key].format(  # type: ignore
-                    **interpolation_facts
-                )
+            if key in config_dict_local:
+                value = config_dict_local[key]  # type: ignore
+                if value is not None:
+                    if interpolation_facts is None:
+                        interpolation_facts = self.__get_interpolation_facts()
+                    config_dict_local[key] = value.format(  # type: ignore
+                        **interpolation_facts
+                    )
 
     def __repr__(self) -> str:
         return "{!s}({!r}, {!r}, {!r}, {!r}, {!r}, {!r})".format(
