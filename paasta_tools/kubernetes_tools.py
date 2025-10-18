@@ -4191,9 +4191,10 @@ def create_pod_topology_spread_constraints(
     return pod_topology_spread_constraints
 
 
+@lru_cache(maxsize=1024)
 def sanitised_cr_name(service: str, instance: str) -> str:
-    sanitised_service = sanitise_kubernetes_name(service)
-    sanitised_instance = sanitise_kubernetes_name(instance)
+    sanitised_service = _cached_sanitise_kubernetes_name(service)
+    sanitised_instance = _cached_sanitise_kubernetes_name(instance)
     return f"{sanitised_service}-{sanitised_instance}"
 
 
@@ -4813,3 +4814,8 @@ def add_volumes_for_authenticating_services(
     ):
         config_volumes = [token_config, *config_volumes]
     return config_volumes
+
+
+@lru_cache(maxsize=1024)
+def _cached_sanitise_kubernetes_name(service: str) -> str:
+    return sanitise_kubernetes_name(service)

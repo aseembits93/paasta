@@ -186,13 +186,13 @@ def load_flink_instance_config(
 
 # TODO: read this from CRD in service configs
 def cr_id(service: str, instance: str) -> Mapping[str, str]:
-    return dict(
-        group="yelp.com",
-        version="v1alpha1",
-        namespace="paasta-flinks",
-        plural="flinks",
-        name=sanitised_cr_name(service, instance),
-    )
+    return {
+        "group": "yelp.com",
+        "version": "v1alpha1",
+        "namespace": "paasta-flinks",
+        "plural": "flinks",
+        "name": sanitised_cr_name(service, instance),
+    }
 
 
 def get_flink_ingress_url_root(cluster: str, is_eks: bool) -> str:
