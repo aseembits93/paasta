@@ -81,6 +81,8 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_pattern = re.compile("[a-f0-9]{40}")
+
 
 log = logging.getLogger(__name__)
 
@@ -871,8 +873,7 @@ def validate_short_git_sha(value):
 
 
 def validate_full_git_sha(value: str) -> str:
-    pattern = re.compile("[a-f0-9]{40}")
-    if not pattern.match(value):
+    if not _pattern.match(value):
         raise argparse.ArgumentTypeError(
             "%s is not a full Git SHA, and PaaSTA needs the full SHA" % value
         )
