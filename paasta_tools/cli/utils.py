@@ -113,7 +113,8 @@ def check_mark():
     """
     :return: string that can print a checkmark
     """
-    return PaastaColors.green("\u2713")
+    green = PaastaColors.green
+    return green("\u2713")
 
 
 def x_mark():
