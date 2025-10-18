@@ -81,6 +81,8 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_CHECK_MARK_PREFIX = None
+
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +138,11 @@ def success(msg):
     :param msg: a string
     :return: a beautiful string
     """
-    return "{} {}".format(check_mark(), msg)
+    prefix = _CHECK_MARK_PREFIX
+    if prefix is None:
+        prefix = "{} ".format(check_mark())
+        globals()["_CHECK_MARK_PREFIX"] = prefix
+    return prefix + str(msg)
 
 
 def failure(msg, link):
