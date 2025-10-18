@@ -81,6 +81,14 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_os_getcwd = os.getcwd
+
+_os_path_basename = os.path.basename
+
+_os_path_join = os.path.join
+
+_os_path_isdir = os.path.isdir
+
 
 log = logging.getLogger(__name__)
 
@@ -342,7 +350,7 @@ def guess_service_name():
     """Deduce the service name from the pwd
     :return : A string representing the service name
     """
-    return os.path.basename(os.getcwd())
+    return _os_path_basename(_os_getcwd())
 
 
 def validate_service_name(service, soa_dir=DEFAULT_SOA_DIR):
@@ -352,7 +360,9 @@ def validate_service_name(service, soa_dir=DEFAULT_SOA_DIR):
     :return : boolean True
     :raises: NoSuchService exception
     """
-    if not service or not os.path.isdir(os.path.join(soa_dir, service)):
+    if not service:
+        raise NoSuchService(service)
+    if not _os_path_isdir(_os_path_join(soa_dir, service)):
         raise NoSuchService(service)
     return True
 
