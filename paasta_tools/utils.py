@@ -1178,7 +1178,8 @@ class PaastaColors:
 
         :param text: a string
         :return: text color coded with ANSI green"""
-        return PaastaColors.color_text(PaastaColors.GREEN, text)
+        color_text = PaastaColors.color_text
+        return color_text(PaastaColors.GREEN, text)
 
     @staticmethod
     def red(text: str) -> str:
