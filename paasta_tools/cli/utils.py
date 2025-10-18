@@ -820,20 +820,20 @@ def extract_tags(paasta_tag: str) -> Mapping[str, str]:
 def list_deploy_groups(
     service: Optional[str], soa_dir: str = DEFAULT_SOA_DIR, parsed_args=None, **kwargs
 ) -> Set:
-    return set(
-        filter(
-            None,
-            {
-                config.get_deploy_group()
-                for config in get_instance_configs_for_service(
-                    service=service
-                    if service is not None
-                    else parsed_args.service or guess_service_name(),
-                    soa_dir=soa_dir,
-                )
-            },
-        )
+    target_service = (
+        service
+        if service is not None
+        else parsed_args.service or guess_service_name()
     )
+    deploy_groups: Set = set()
+    for config in get_instance_configs_for_service(
+        service=target_service,
+        soa_dir=soa_dir,
+    ):
+        deploy_group = config.get_deploy_group()
+        if deploy_group:
+            deploy_groups.add(deploy_group)
+    return deploy_groups
 
 
 def validate_given_deploy_groups(
@@ -956,22 +956,31 @@ def get_instance_configs_for_service(
         clusters = list_clusters(service=service, soa_dir=soa_dir)
 
     if type_filter is None:
-        type_filter = INSTANCE_TYPE_HANDLERS.keys()
+        relevant_handlers = tuple(INSTANCE_TYPE_HANDLERS.items())
+    else:
+        type_filter_set = set(type_filter)
+        if not type_filter_set:
+            return
+        relevant_handlers = tuple(
+            (instance_type, INSTANCE_TYPE_HANDLERS[instance_type])
+            for instance_type in INSTANCE_TYPE_HANDLERS.keys()
+            if instance_type in type_filter_set
+        )
+
+    instances_set: Optional[Set[str]] = None
+    if instances:
+        instances_set = set(instances)
 
     for cluster in clusters:
-        for instance_type, instance_handlers in INSTANCE_TYPE_HANDLERS.items():
-            if instance_type not in type_filter:
-                continue
-
+        for instance_type, instance_handlers in relevant_handlers:
             instance_lister, instance_loader = instance_handlers
-
             for _, instance in instance_lister(
                 service=service,
                 cluster=cluster,
                 soa_dir=soa_dir,
                 instance_type=instance_type,
             ):
-                if instances and instance not in instances:
+                if instances_set is not None and instance not in instances_set:
                     continue
 
                 yield instance_loader(
