@@ -591,9 +591,9 @@ def get_jenkins_build_output_url():
     Returns None if it's not available.
     """
     build_output = os.environ.get("BUILD_URL")
-    if build_output:
-        build_output = build_output + "console"
-    return build_output
+    if not build_output:
+        return build_output
+    return f"{build_output}console"
 
 
 InstanceListerSig = Callable[
