@@ -81,6 +81,8 @@ from paasta_tools.utils import PaastaColors
 from paasta_tools.utils import SystemPaastaConfig
 from paasta_tools.utils import validate_service_instance
 
+_CHECK_MARK = None
+
 
 log = logging.getLogger(__name__)
 
@@ -136,7 +138,10 @@ def success(msg):
     :param msg: a string
     :return: a beautiful string
     """
-    return "{} {}".format(check_mark(), msg)
+    global _CHECK_MARK
+    if _CHECK_MARK is None:
+        _CHECK_MARK = check_mark()
+    return f"{_CHECK_MARK} {msg}"
 
 
 def failure(msg, link):
