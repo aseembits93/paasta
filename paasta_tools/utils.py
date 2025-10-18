@@ -86,6 +86,8 @@ from service_configuration_lib import read_service_configuration
 import paasta_tools.cli.fsm
 from paasta_tools import yaml_tools as yaml
 
+DEFAULT_CLUSTER_FQDN_FORMAT = "{cluster:s}.paasta"
+
 
 # DO NOT CHANGE SPACER, UNLESS YOU'RE PREPARED TO CHANGE ALL INSTANCES
 # OF IT IN OTHER LIBRARIES (i.e. service_configuration_lib).
@@ -2464,7 +2466,7 @@ class SystemPaastaConfig:
 
         :returns: A format string for constructing the FQDN of the masters in a given cluster.
         """
-        return self.config_dict.get("cluster_fqdn_format", "{cluster:s}.paasta")
+        return self.config_dict.get("cluster_fqdn_format", DEFAULT_CLUSTER_FQDN_FORMAT)
 
     def get_paasta_status_version(self) -> str:
         """Get paasta status version string (new | old). Defaults to 'old'.

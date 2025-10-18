@@ -63,7 +63,7 @@ from paasta_tools.nrtsearchserviceeks_tools import (
 )
 from paasta_tools.paasta_service_config_loader import PaastaServiceConfigLoader
 from paasta_tools.tron_tools import load_tron_instance_config
-from paasta_tools.utils import _log
+from paasta_tools.utils import DEFAULT_CLUSTER_FQDN_FORMAT, _log
 from paasta_tools.utils import _run
 from paasta_tools.utils import compose_job_id
 from paasta_tools.utils import DEFAULT_SOA_CONFIGS_GIT_URL
@@ -403,13 +403,15 @@ def calculate_remote_masters(
     happens to point, eventually, to the Mesos masters in that cluster).
     Return IPs of those Mesos masters.
     """
+    cluster_fqdn_format = system_paasta_config.get_cluster_fqdn_format()
+    if cluster_fqdn_format == DEFAULT_CLUSTER_FQDN_FORMAT:
+        cluster_fqdn = f"{cluster}.paasta"
+    else:
+        cluster_fqdn = cluster_fqdn_format.format(cluster=cluster)
 
-    cluster_fqdn = system_paasta_config.get_cluster_fqdn_format().format(
-        cluster=cluster
-    )
+    output = None
     try:
         _, _, ips = socket.gethostbyname_ex(cluster_fqdn)
-        output = None
     except socket.gaierror as e:
         output = f"ERROR while doing DNS lookup of {cluster_fqdn}:\n{e.strerror}\n "
         ips = []
