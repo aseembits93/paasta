@@ -568,8 +568,10 @@ def run_on_master(
 
 
 def lazy_choices_completer(list_func):
-    def inner(prefix, **kwargs):
-        options = list_func(**kwargs)
+    def inner(prefix, _list_func=list_func, **kwargs):
+        options = _list_func(**kwargs)
+        if prefix == "":
+            return list(options)
         return [o for o in options if o.startswith(prefix)]
 
     return inner
