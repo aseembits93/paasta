@@ -214,23 +214,18 @@ def _filter_for_endpoint(json_response: Any, endpoint: str) -> Mapping[str, Any]
     """
     Filter json response to include only a subset of fields.
     """
-    if endpoint == "config":
-        return {
-            key: value for (key, value) in json_response.items() if key in CONFIG_KEYS
-        }
-    if endpoint == "overview":
-        return {
-            key: value for (key, value) in json_response.items() if key in OVERVIEW_KEYS
-        }
     if endpoint == "jobs":
         return json_response
     if endpoint.startswith("jobs"):
-        return {
-            key: value
-            for (key, value) in json_response.items()
-            if key in JOB_DETAILS_KEYS
-        }
-    return json_response
+        keys = JOB_DETAILS_KEYS
+    elif endpoint == "config":
+        keys = CONFIG_KEYS
+    elif endpoint == "overview":
+        keys = OVERVIEW_KEYS
+    else:
+        return json_response
+
+    return {key: json_response[key] for key in json_response if key in keys}
 
 
 def _get_jm_rest_api_base_url(cr: Mapping[str, Any]) -> str:
