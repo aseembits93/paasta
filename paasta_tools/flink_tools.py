@@ -122,7 +122,11 @@ class FlinkDeploymentConfig(LongRunningServiceConfig):
         Returns:
             The flink pool string.
         """
-        spot_config = self.config_dict.get("spot", None)
+        config_dict = self.config_dict
+        try:
+            spot_config = config_dict["spot"]
+        except KeyError:
+            return "flink-spot"
         if spot_config is False:
             return "flink"
         else:
